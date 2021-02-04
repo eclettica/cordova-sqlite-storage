@@ -41,7 +41,9 @@
         </config-file>
 
         <source-file src="src/android/io/sqlc/SQLitePlugin.java" target-dir="src/io/sqlc"/>
+        <source-file src="src/android/io/sqlc/SQLiteManager.java" target-dir="src/io/sqlc"/>
         <source-file src="src/android/io/sqlc/SQLiteAndroidDatabase.java" target-dir="src/io/sqlc"/>
+        <source-file src="src/android/io/sqlc/SQLiteAndroidDatabaseCallback.java" target-dir="src/io/sqlc"/>
         <source-file src="src/android/io/sqlc/SQLiteConnectorDatabase.java" target-dir="src/io/sqlc"/>
 
         <!-- Android-sqlite-connector [jar]: -->

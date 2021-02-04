@@ -75,6 +75,101 @@ class SQLiteConnectorDatabase extends SQLiteAndroidDatabase
     @Override
     void bugWorkaround() { }
 
+
+    @Override
+    void executeSqlBatch( String[] queryarr, JSONArray[] jsonparams, SQLiteAndroidDatabaseCallback cbc) {
+
+        if (mydb == null) {
+            // not allowed - can only happen if someone has closed (and possibly deleted) a database and then re-used the database
+            cbc.error("database has been closed");
+            return;
+        }
+        Log.i("CommunicationService", "executeSqlBatch");
+
+        int len = queryarr.length;
+        JSONArray batchResults = new JSONArray();
+
+        for (int i = 0; i < len; i++) {
+            int rowsAffectedCompat = 0;
+            boolean needRowsAffectedCompat = false;
+
+            JSONObject queryResult = null;
+
+            String errorMessage = "unknown";
+            int sqliteErrorCode = -1;
+            int code = 0; // SQLException.UNKNOWN_ERR
+
+            try {
+                String query = queryarr[i];
+
+                long lastTotal = mydb.getTotalChanges();
+                queryResult = this.executeSQLiteStatement(query, jsonparams[i], null);
+                long newTotal = mydb.getTotalChanges();
+                long rowsAffected = newTotal - lastTotal;
+
+                queryResult.put("rowsAffected", rowsAffected);
+                if (rowsAffected > 0) {
+                    long insertId = mydb.getLastInsertRowid();
+                    if (insertId > 0) {
+                        queryResult.put("insertId", insertId);
+                    }
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                sqliteErrorCode = ex.getErrorCode();
+                errorMessage = ex.getMessage();
+                Log.v("executeSqlBatch", "SQLitePlugin.executeSql[Batch](): SQL Error code = " + sqliteErrorCode + " message = " + errorMessage);
+
+                switch(sqliteErrorCode) {
+                    case SQLCode.ERROR:
+                        code = 5; // SQLException.SYNTAX_ERR
+                        break;
+                    case 13: // SQLITE_FULL
+                        code = 4; // SQLException.QUOTA_ERR
+                        break;
+                    case SQLCode.CONSTRAINT:
+                        code = 6; // SQLException.CONSTRAINT_ERR
+                        break;
+                    default:
+                        /* do nothing */
+                }
+            } catch (JSONException ex) {
+                // NOT expected:
+                ex.printStackTrace();
+                errorMessage = ex.getMessage();
+                code = 0; // SQLException.UNKNOWN_ERR
+                Log.e("executeSqlBatch", "SQLitePlugin.executeSql[Batch](): UNEXPECTED JSON Error=" + errorMessage);
+            }
+
+            try {
+                if (queryResult != null) {
+                    JSONObject r = new JSONObject();
+
+                    r.put("type", "success");
+                    r.put("result", queryResult);
+
+                    batchResults.put(r);
+                } else {
+                    JSONObject r = new JSONObject();
+                    r.put("type", "error");
+
+                    JSONObject er = new JSONObject();
+                    er.put("message", errorMessage);
+                    er.put("code", code);
+                    r.put("result", er);
+
+                    batchResults.put(r);
+                }
+            } catch (JSONException ex) {
+                ex.printStackTrace();
+                Log.e("executeSqlBatch", "SQLitePlugin.executeSql[Batch](): Error=" + ex.getMessage());
+                // TODO what to do?
+            }
+        }
+
+        cbc.success(batchResults);
+    }
+
     /**
      * Executes a batch request and sends the results via cbc.
      *

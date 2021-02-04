@@ -104,6 +104,26 @@ class SQLiteAndroidDatabase
         this.open(dbFile);
     }
 
+
+    void executeSqlBatch(String[] queryarr, JSONArray[] jsonparamsArr, SQLiteAndroidDatabaseCallback cbc) {
+
+        if (mydb == null) {
+            // not allowed - can only happen if someone has closed (and possibly deleted) a database and then re-used the database
+            // (internal plugin error)
+            cbc.error("INTERNAL PLUGIN ERROR: database not open");
+            return;
+        }
+
+        int len = queryarr.length;
+        JSONArray batchResults = new JSONArray();
+
+        for (int i = 0; i < len; i++) {
+            executeSqlBatchStatement(queryarr[i], jsonparamsArr[i], batchResults);
+        }
+
+        cbc.success(batchResults);
+    }
+
     /**
      * Executes a batch request and sends the results via cbc.
      *
