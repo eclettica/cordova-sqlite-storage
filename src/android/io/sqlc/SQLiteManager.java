@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ExecutorService;
 
 import java.io.File;
 
@@ -18,9 +19,12 @@ import android.util.Log;
 
 
 
+
 public class SQLiteManager {
 
     private Context context;
+
+    private ExecutorService threadPool;
 
     private SQLiteManager() {
 
@@ -47,6 +51,15 @@ public class SQLiteManager {
 
     public void setContext(Context context) {
         this.context = context;
+    }
+
+    public boolean needThreadPool() {
+        return this.threadPool == null;
+    }
+
+
+    public void setThreadPool(ExecutorService threadPool) {
+        this.threadPool = threadPool;
     }
 
     /**
@@ -83,8 +96,13 @@ public class SQLiteManager {
         } else {
             r = new DBRunner(dbname, options, cbc);
             dbrmap.put(dbname, r);
-            Thread tProcess = new Thread(r);
-            tProcess.start();
+            if(this.threadPool != null) {
+                this.threadPool.execute(r);
+            } else {
+                Thread tProcess = new Thread(r);
+                tProcess.start();
+            }
+
             //this.cordova.getThreadPool().execute(r);
         }
     }
@@ -200,7 +218,7 @@ public class SQLiteManager {
     }
 
     public void executeSingle(String dbname, String query, JSONArray params, SQLiteAndroidDatabaseCallback cbc) {
-            Log.i("CommunicationService", "executeSingle");
+            Log.d("CommunicationService", "executeSingle");
             String[] queries = new String[1];
             queries[0] = query;
             JSONArray[] jsonparams = new JSONArray[1];
@@ -214,7 +232,7 @@ public class SQLiteManager {
             DBRunner r = dbrmap.get(dbname);
             if (r != null) {
                 try {
-                    Log.i("CommunicationService", "put in runner...");
+                    Log.d("CommunicationService", "put in runner...");
                     r.q.put(q);
                 } catch(Exception e) {
                     Log.e("CommunicationService", "couldn't add to queue", e);
@@ -222,7 +240,7 @@ public class SQLiteManager {
                     cbc.error("INTERNAL PLUGIN ERROR: couldn't add to queue");
                 }
             } else {
-                Log.i("CommunicationService", "runner not found...");
+                Log.d("CommunicationService", "runner not found...");
                 cbc.error("INTERNAL PLUGIN ERROR: database not open");
             }
     }

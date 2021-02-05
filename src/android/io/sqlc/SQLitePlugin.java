@@ -51,6 +51,10 @@ public class SQLitePlugin extends CordovaPlugin {
             sqliteManager.setContext(this.cordova.getActivity());
         }
 
+        if(sqliteManager.needThreadPool()) {
+            sqliteManager.setThreadPool(this.cordova.getThreadPool());
+        }
+
         Action action;
         try {
             action = Action.valueOf(actionAsString);
