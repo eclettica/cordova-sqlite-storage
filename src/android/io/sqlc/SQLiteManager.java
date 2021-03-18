@@ -217,6 +217,34 @@ public class SQLiteManager {
         }
     }
 
+    public void executeSingle(String dbname, String query, JSONArray params, CallbackContext cbc) {
+        Log.d("CommunicationService", "executeSingle");
+        String[] queries = new String[1];
+        queries[0] = query;
+        JSONArray[] jsonparams = new JSONArray[1];
+        if(params != null)
+            jsonparams[0] = params;
+        else
+            jsonparams[0] = new JSONArray();
+
+        // put db query in the queue to be executed in the db thread:
+        DBQuery q = new DBQuery(queries, jsonparams, cbc);
+        DBRunner r = dbrmap.get(dbname);
+        if (r != null) {
+            try {
+                Log.d("CommunicationService", "put in runner...");
+                r.q.put(q);
+            } catch(Exception e) {
+                Log.e("CommunicationService", "couldn't add to queue", e);
+                Log.e(SQLiteManager.class.getSimpleName(), "couldn't add to queue", e);
+                cbc.error("INTERNAL PLUGIN ERROR: couldn't add to queue");
+            }
+        } else {
+            Log.d("CommunicationService", "runner not found...");
+            cbc.error("INTERNAL PLUGIN ERROR: database not open");
+        }
+    }
+
     public void executeSingle(String dbname, String query, JSONArray params, SQLiteAndroidDatabaseCallback cbc) {
             Log.d("CommunicationService", "executeSingle");
             String[] queries = new String[1];
