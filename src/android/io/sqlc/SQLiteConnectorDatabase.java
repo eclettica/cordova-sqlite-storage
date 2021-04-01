@@ -167,7 +167,8 @@ class SQLiteConnectorDatabase extends SQLiteAndroidDatabase
             }
         }
 
-        cbc.success(batchResults);
+        if(cbc != null)
+            cbc.success(batchResults);
     }
 
     /**
